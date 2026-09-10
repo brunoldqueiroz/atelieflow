@@ -149,6 +149,7 @@ class EncomendaResumoResponse(BaseModel):
     data_entrega_prevista: date
     valor_total: Decimal
     valor_sinal: Decimal
+    cliente: ClienteResponse
     tipo_produto: TipoProdutoResponse
     status: StatusEncomendaResponse
 
