@@ -1,7 +1,7 @@
 import { classesCor } from '../../utils/cores'
 import EncomendaCard from './EncomendaCard'
 
-export default function KanbanColumn({ coluna, onAvancar, onRetroceder }) {
+export default function KanbanColumn({ coluna, onAvancar, onRetroceder, envolverCard }) {
   const cores = classesCor(coluna.status.cor_badge)
 
   return (
@@ -25,14 +25,17 @@ export default function KanbanColumn({ coluna, onAvancar, onRetroceder }) {
             Nenhuma encomenda
           </p>
         ) : (
-          coluna.encomendas.map((encomenda) => (
-            <EncomendaCard
-              key={encomenda.id}
-              encomenda={encomenda}
-              onAvancar={onAvancar}
-              onRetroceder={onRetroceder}
-            />
-          ))
+          coluna.encomendas.map((encomenda) => {
+            const card = (
+              <EncomendaCard
+                key={encomenda.id}
+                encomenda={encomenda}
+                onAvancar={onAvancar}
+                onRetroceder={onRetroceder}
+              />
+            )
+            return envolverCard ? envolverCard(encomenda, card) : card
+          })
         )}
       </div>
     </section>
