@@ -25,8 +25,8 @@ describe('EncomendaCard', () => {
     expect(screen.getByText('Caderno')).toBeInTheDocument()
     expect(screen.getByText(/Capa rosa/)).toBeInTheDocument()
     expect(screen.getByText('Entrega: 01/12/2099')).toBeInTheDocument()
-    expect(screen.getByText('R$\u00a0150,00')).toBeInTheDocument()
-    expect(screen.getByText(/Sinal: R\$\u00a050,00/)).toBeInTheDocument()
+    expect(screen.getByText('R$ 150,00')).toBeInTheDocument()
+    expect(screen.getByText(/Sinal: R\$ 50,00/)).toBeInTheDocument()
   })
 
   it('sinaliza encomenda atrasada', () => {
