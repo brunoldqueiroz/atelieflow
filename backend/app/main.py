@@ -3,12 +3,16 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .database import Base, engine
+from . import models  # noqa: F401 — registra as tabelas no metadata
+from .database import Base, SessionLocal, engine
+from .seed import seed_database
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    with SessionLocal() as db:
+        seed_database(db)
     yield
 
 
