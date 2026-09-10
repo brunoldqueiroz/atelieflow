@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import models  # noqa: F401 — registra as tabelas no metadata
 from .database import Base, SessionLocal, engine
-from .routers import clientes, tipos_produto
+from .routers import clientes, status_encomenda, tipos_produto
 from .seed import seed_database
 
 
@@ -36,6 +36,9 @@ app.add_middleware(
 app.include_router(clientes.router, prefix="/api/clientes", tags=["clientes"])
 app.include_router(
     tipos_produto.router, prefix="/api/tipos-produto", tags=["tipos de produto"]
+)
+app.include_router(
+    status_encomenda.router, prefix="/api/status-encomenda", tags=["status"]
 )
 
 
