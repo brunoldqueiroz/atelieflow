@@ -24,7 +24,7 @@ describe('EncomendaCard', () => {
     expect(screen.getByText('Maria Silva')).toBeInTheDocument()
     expect(screen.getByText('Caderno')).toBeInTheDocument()
     expect(screen.getByText(/Capa rosa/)).toBeInTheDocument()
-    expect(screen.getByText('01/12/2099')).toBeInTheDocument()
+    expect(screen.getByText('Entrega: 01/12/2099')).toBeInTheDocument()
     expect(screen.getByText('R$\u00a0150,00')).toBeInTheDocument()
     expect(screen.getByText(/Sinal: R\$\u00a050,00/)).toBeInTheDocument()
   })
