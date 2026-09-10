@@ -160,7 +160,7 @@ describe('ClientesPage — histórico', () => {
     await userEvent.click(within(linha).getByRole('button', { name: /Histórico/ }))
 
     expect(await screen.findByText(/Caderno/)).toBeInTheDocument()
-    expect(screen.getByText('01/10/2026')).toBeInTheDocument()
+    expect(screen.getByText('Entrega: 01/10/2026')).toBeInTheDocument()
     expect(screen.getByText(/R\$ 150,00/)).toBeInTheDocument()
     expect(screen.getByText('Pronto')).toBeInTheDocument()
   })
