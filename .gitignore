@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Banco de dados SQLite
+*.db
+*.db-journal
+
+# Node / Frontend
+node_modules/
+dist/
+
+# Ambiente
+.env
+.env.local
+
+# SO / IDE
+.DS_Store
+Thumbs.db
+.vscode/
