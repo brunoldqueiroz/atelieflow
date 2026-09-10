@@ -50,7 +50,7 @@ describe('EncomendasPage', () => {
     expect(await screen.findByText('Maria Silva')).toBeInTheDocument()
     expect(screen.getByText('Ana Souza')).toBeInTheDocument()
     expect(screen.getAllByText('Caderno')).toHaveLength(2)
-    expect(screen.getByText('Entrega: 01/10/2026')).toBeInTheDocument()
+    expect(screen.getAllByText('Entrega: 01/10/2026')).toHaveLength(2)
     expect(screen.getAllByText(/R\$ 150,00/).length).toBeGreaterThan(0)
     expect(screen.getByText('Orçado')).toBeInTheDocument()
     expect(screen.getByText('Pronto')).toBeInTheDocument()
