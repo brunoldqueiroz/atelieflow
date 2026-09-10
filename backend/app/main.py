@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import models  # noqa: F401 — registra as tabelas no metadata
 from .database import Base, SessionLocal, engine
+from .routers import clientes
 from .seed import seed_database
 
 
@@ -30,6 +31,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+app.include_router(clientes.router, prefix="/api/clientes", tags=["clientes"])
 
 
 @app.get("/api/health", tags=["saúde"])
