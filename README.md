@@ -8,8 +8,10 @@ Projeto de Extensão Universitária (PEX V) — Análise e Desenvolvimento de Si
 
 | Camada | Tecnologias |
 |---|---|
-| Backend | Python 3.13, FastAPI, SQLAlchemy 2 (SQLite), Pydantic v2 |
-| Frontend | React 19, Vite, Tailwind CSS 4, React Router, @dnd-kit |
+| Backend | Python 3.13, FastAPI, SQLAlchemy 2, Pydantic v2, Alembic (migrações) |
+| Banco de dados | PostgreSQL 17 (acesso multiusuário: app + read-only para integrações) |
+| Frontend | React 19, Vite, Tailwind CSS 4, React Router, @dnd-kit, nginx |
+| Infraestrutura | Docker Compose (db, backend, frontend, backup) |
 | Testes | pytest + TestClient (backend) · Vitest + Testing Library + MSW (frontend) |
 
 ## Escopo do piloto (RF01–RF05)
@@ -22,40 +24,100 @@ Projeto de Extensão Universitária (PEX V) — Análise e Desenvolvimento de Si
 
 RF06 (financeiro) pertence à fase de refinamento e não faz parte deste piloto.
 
-## Como executar
+## Quickstart — Docker (recomendado)
 
-### Backend (http://localhost:8000)
+Pré-requisito: Docker com Compose. Sobe os 4 serviços (banco, API, SPA e backup):
 
 ```bash
-cd backend
-uv sync
-uv run uvicorn app.main:app --reload
+cp .env.example .env      # ajuste as senhas
+docker compose build
+docker compose up -d
 ```
 
-- Documentação interativa (Swagger): http://localhost:8000/docs
-- O banco `atelieflow.db` (SQLite) é criado automaticamente na primeira execução, já com a carga inicial de tipos de produto e status do pipeline.
+- **Aplicação**: http://localhost:5173 (SPA; `/api` é proxied pelo nginx para o backend — mesmo domínio, sem CORS)
+- **API/Swagger**: http://localhost:8000/docs
+- Na primeira subida: o banco é inicializado, o usuário read-only é criado, as migrações são aplicadas (`alembic upgrade head`) e a carga inicial (tipos de produto + status) é inserida.
 
-### Frontend (http://localhost:5173)
+Parar: `docker compose down` · Parar apagando os dados: `docker compose down -v`
+
+## Desenvolvimento local (app/frontend fora do Docker)
 
 ```bash
+# 1. Banco de dados via Docker (ou PostgreSQL local na 5432)
+docker compose up -d db
+
+# 2. Backend — http://localhost:8000
+cd backend
+uv sync
+uv run alembic upgrade head
+uv run uvicorn app.main:app --reload
+
+# 3. Frontend — http://localhost:5173
 cd frontend
 npm install
 npm run dev
 ```
 
-Para apontar para outra URL de API: `VITE_API_URL=http://host:porta/api npm run dev`.
+Para apontar o backend para outro banco: `DATABASE_URL=postgresql+psycopg://usuario:senha@host:5432/banco`.
 
 ## Testes
 
 ```bash
-# Backend (68 testes)
+# Backend — 72 testes (SQLite em memória por padrão)
 cd backend && uv run pytest
 
-# Frontend (77 testes)
+# Backend — mesma suíte contra PostgreSQL real
+TEST_DATABASE_URL=postgresql+psycopg://atelieflow:senha@localhost:5432/atelieflow_test uv run pytest
+
+# Frontend — 77 testes
 cd frontend && npm run test
 
 # Build de produção do frontend
 cd frontend && npm run build
+```
+
+## Acesso ao banco de dados (multiusuário)
+
+Dois usuários são provisionados — preparado para futuras integrações de AI/BI:
+
+| Usuário | Permissões | Uso |
+|---|---|---|
+| `atelieflow` (POSTGRES_USER) | Leitura/escrita total | API e migrações Alembic |
+| `atelieflow_leitura` | **Somente SELECT** (tabelas atuais e futuras) | Integrações de AI, BI, relatórios |
+
+A porta 5432 é exposta no host conforme `DB_BIND` no `.env` (`127.0.0.1` = só esta máquina; `0.0.0.0` = acessível na LAN):
+
+```
+postgresql://atelieflow_leitura:<LEITURA_PASSWORD>@localhost:5432/atelieflow
+```
+
+Verificação rápida:
+
+```bash
+# SELECT permitido
+docker compose exec -e PGPASSWORD=<LEITURA_PASSWORD> db \
+  psql -U atelieflow_leitura -d atelieflow -c 'SELECT count(*) FROM encomendas'
+
+# INSERT negado (permission denied)
+docker compose exec -e PGPASSWORD=<LEITURA_PASSWORD> db \
+  psql -U atelieflow_leitura -d atelieflow -c "INSERT INTO clientes (nome, telefone) VALUES ('x','0')"
+```
+
+## Backup e restore
+
+O serviço `backup` roda `pg_dump` diariamente às **03:00**, compactado em gzip, com **retenção de 14 dias** (volume Docker `backups`).
+
+```bash
+# Backup manual imediato
+docker compose exec backup /usr/local/bin/backup.sh
+
+# Listar backups
+docker compose exec backup ls -lh /backups/
+
+# Restore em banco novo (ex.: validação)
+docker compose exec db createdb -U atelieflow restauracao
+docker compose exec backup sh -c 'gunzip -c /backups/atelieflow-AAAAMMDD-HHMMSS.sql.gz' \
+  | docker compose exec -T db psql -U atelieflow restauracao
 ```
 
 ## Estrutura
@@ -63,19 +125,25 @@ cd frontend && npm run build
 ```
 backend/
   app/
-    main.py            # app FastAPI, CORS, lifespan (create_all + seed)
-    database.py        # engine SQLite com PRAGMA foreign_keys
+    main.py            # app FastAPI, CORS, lifespan (seed idempotente)
+    config.py          # DATABASE_URL via ambiente
+    database.py        # engine SQLAlchemy (PRAGMA de FKs apenas para SQLite)
     models.py          # 4 tabelas em 3FN conforme o documento de requisitos
     schemas.py         # validação Pydantic (ex.: sinal ≤ total)
     seed.py            # carga inicial idempotente
     routers/           # clientes, tipos_produto, status_encomenda, encomendas, kanban
-  tests/               # pytest com SQLite em memória
+  alembic/             # migrações versionadas do schema
+  tests/               # pytest (SQLite em memória ou TEST_DATABASE_URL)
 frontend/
   src/
     services/api.js    # camada HTTP da API REST
     pages/             # Kanban, Encomendas, FormEncomenda, Clientes, Configurações
     components/kanban/ # Board, Column e Card com drag-and-drop
     utils/             # formatação (data, moeda, prazo) e mapa de cores
+  nginx.conf           # SPA fallback + proxy /api → backend
+db/init/               # criação do usuário read-only (1ª inicialização)
+backup/                # pg_dump agendado (crond) com retenção
+docker-compose.yml     # orquestração: db, backend, frontend, backup
 ```
 
 ## API principal
@@ -88,3 +156,4 @@ frontend/
 | GET/POST/PUT/DELETE | `/api/encomendas` | Encomendas (filtros `status_id`, `cliente_id`) |
 | PATCH | `/api/encomendas/{id}/status` | Move a encomenda no pipeline |
 | GET | `/api/kanban` | Colunas com cards ordenados por urgência |
+
