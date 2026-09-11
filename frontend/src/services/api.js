@@ -1,7 +1,9 @@
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api'
 
 async function requisicao(caminho, { method = 'GET', corpo, params } = {}) {
-  const url = new URL(`${BASE_URL}${caminho}`)
+  // BASE_URL absoluta (dev): a origem é ignorada.
+  // BASE_URL relativa (Docker atrás do nginx): resolve contra a origem da página.
+  const url = new URL(`${BASE_URL}${caminho}`, window.location.origin)
   if (params) {
     for (const [chave, valor] of Object.entries(params)) {
       if (valor !== undefined && valor !== null && valor !== '') {
