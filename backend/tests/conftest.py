@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
@@ -7,19 +9,25 @@ from sqlalchemy.pool import StaticPool
 from app.database import Base, get_db
 from app.main import app
 
-engine = create_engine(
-    "sqlite://",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+# Default: SQLite em memória (rápido, sem serviço externo).
+# Para rodar a suíte contra o PostgreSQL: TEST_DATABASE_URL=postgresql+psycopg://...
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "sqlite://")
 
+if TEST_DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        TEST_DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
 
-@event.listens_for(engine, "connect")
-def _ativar_foreign_keys(dbapi_connection, _connection_record):
-    """Garante integridade referencial no SQLite também nos testes."""
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
+    @event.listens_for(engine, "connect")
+    def _ativar_foreign_keys(dbapi_connection, _connection_record):
+        """Garante integridade referencial no SQLite também nos testes."""
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+else:
+    engine = create_engine(TEST_DATABASE_URL)
 
 
 TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
