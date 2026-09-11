@@ -18,6 +18,9 @@ dist/
 .env
 .env.local
 
+# Backups do banco de dados
+backups/
+
 # SO / IDE
 .DS_Store
 Thumbs.db
