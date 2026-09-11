@@ -1,4 +1,4 @@
-versao: 1.2
+versao: 1.3
 
 # **RELATÓRIO TÉCNICO DE PROJETO DE EXTENSÃO UNIVERSITÁRIA (PEX V)**
 
@@ -60,7 +60,9 @@ A partir de diagnóstico situacional realizado com a responsável pelo ateliê, 
 
 ## **5\. ARQUITETURA DE SOFTWARE E MODELAGEM DE DADOS**
 
-O sistema **AteliêFlow** adota arquitetura em camadas desacopladas via API RESTful. O backend em Python opera sobre o framework **FastAPI**, assegurando validação estrita de dados através do Pydantic e documentação automática Swagger/OpenAPI. O armazenamento persistente utiliza o banco de dados **SQLite** com mapeamento objeto-relacional via **SQLAlchemy ORM**, garantindo integridade referencial com chaves estrangeiras. A camada de apresentação (frontend) consiste em uma Single Page Application (SPA) modular desenvolvida com **React**, inicializada e empacotada por **Vite** e estilizada com **Tailwind CSS**, viabilizando uso fluido tanto em navegadores desktop quanto móveis na bancada de trabalho.
+O sistema **AteliêFlow** adota arquitetura em camadas desacopladas via API RESTful. O backend em Python opera sobre o framework **FastAPI**, assegurando validação estrita de dados através do Pydantic e documentação automática Swagger/OpenAPI. O armazenamento persistente utiliza o banco de dados **PostgreSQL** com mapeamento objeto-relacional via **SQLAlchemy ORM**, garantindo integridade referencial com chaves estrangeiras e evolução de esquema por migrações versionadas (**Alembic**). A camada de apresentação (frontend) consiste em uma Single Page Application (SPA) modular desenvolvida com **React**, inicializada e empacotada por **Vite** e estilizada com **Tailwind CSS**, viabilizando uso fluido tanto em navegadores desktop quanto móveis na bancada de trabalho.
+
+A implantação é containerizada e orquestrada por **Docker Compose** em quatro serviços: `db` (PostgreSQL 17), `backend` (FastAPI, com aplicação automática das migrações na inicialização), `frontend` (SPA servida por **nginx**, que também atua como proxy reverso de `/api`, eliminando a necessidade de CORS entre os serviços) e `backup` (rotina automatizada de `pg_dump` diário, compactado, com retenção de 14 dias e procedimento de restauração documentado). Visando integrações futuras com ferramentas de AI e BI, o banco expõe acesso multiusuário: além do usuário proprietário da aplicação, um usuário somente leitura (`atelieflow_leitura`) recebe privilégio de `SELECT` sobre todas as tabelas atuais e futuras, e a porta de conexão pode ser publicada na rede local de forma configurável.
 
 | Tabela | Atributo | Tipo de Dado | Restrição / Chave&nbsp;&nbsp; |
 | :---- | :---- | :---- | :---- |
