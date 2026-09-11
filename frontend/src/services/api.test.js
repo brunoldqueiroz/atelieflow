@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { servidor } from '../test/servidor'
 import { api } from './api'
 
@@ -127,3 +127,30 @@ describe('api de tipos de produto', () => {
     expect(urlRecebida).toContain('apenas_ativos=true')
   })
 })
+
+
+describe('URL base relativa (deploy atrás de proxy nginx)', () => {
+  it('resolve caminhos relativos contra a origem da página', async () => {
+    vi.stubEnv('VITE_API_URL', '/api')
+    vi.resetModules()
+    const { api: apiRelativa } = await import('./api')
+
+    const origem = window.location.origin
+    let urlRecebida
+    servidor.use(
+      http.get(`${origem}/api/clientes`, ({ request }) => {
+        urlRecebida = request.url
+        return HttpResponse.json([{ id: 1, nome: 'Maria' }])
+      }),
+    )
+
+    const clientes = await apiRelativa.listarClientes()
+
+    expect(urlRecebida).toBe(`${origem}/api/clientes`)
+    expect(clientes).toHaveLength(1)
+
+    vi.unstubAllEnvs()
+    vi.resetModules()
+  })
+})
+
