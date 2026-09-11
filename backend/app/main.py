@@ -4,14 +4,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import models  # noqa: F401 — registra as tabelas no metadata
-from .database import Base, SessionLocal, engine
+from .database import SessionLocal
 from .routers import clientes, encomendas, kanban, status_encomenda, tipos_produto
 from .seed import seed_database
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
+    # O schema é criado pelas migrações do Alembic (upgrade head), não aqui.
     with SessionLocal() as db:
         seed_database(db)
     yield
